@@ -1,0 +1,23 @@
+name: Daily Commit
+
+on:
+  schedule:
+    - cron: '0 10 * * *'  # Ejecuta todos los días a las 10 AM UTC
+  workflow_dispatch:
+
+jobs:
+  auto-commit:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Clonar el repositorio
+        uses: actions/checkout@v3
+
+      - name: Hacer un commit automático
+        run: |
+          echo "Actividad automática: $(date)" >> activity.txt
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add activity.txt
+          git commit -m "Commit diario automático: $(date)" || echo "Nada para commitear"
+          git push
