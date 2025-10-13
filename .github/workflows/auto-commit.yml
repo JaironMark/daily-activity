@@ -1,5 +1,8 @@
 name: Commit Automático Avanzado
 
+permissions:
+  contents: write  # Permite hacer git push
+
 on:
   schedule:
     # Lunes, Miércoles, Jueves
@@ -42,7 +45,6 @@ jobs:
           fi
 
           echo "Día: $DAY_NAME - Commits a hacer: $COMMITS"
-
           echo "commits=$COMMITS" >> $GITHUB_OUTPUT
           echo "day_name=$DAY_NAME" >> $GITHUB_OUTPUT
 
@@ -57,11 +59,11 @@ jobs:
             MINUTE=$((RANDOM % 60))
             DATE="$(date "+%Y-%m-%d") $HOUR:$(printf "%02d" $MINUTE)"
 
-            echo "Commit $i a las $DATE" >> "$FILE"
+            echo "Commit $i a las $DATE - $RANDOM" >> "$FILE"
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
             git add "$FILE"
             git commit -m "Commit automático #$i - $DATE"
           done
 
-          git push
+          git push origin HEAD
