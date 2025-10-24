@@ -63,13 +63,16 @@ jobs:
             MINUTE=$((RANDOM % 60))
             DATE="$(date "+%Y-%m-%d") $HOUR:$(printf "%02d" $MINUTE)"
 
-            # Archivo distinto por commit
+            # Crear archivo distinto por commit
             FILE="activity-${{ steps.plan.outputs.day_name }}-$i.txt"
             echo "Commit #$i a las $DATE - $RANDOM" >> "$FILE"
 
+            # Agregar archivo al staging
+            git add "$FILE"
+
             # Commit con fecha simulada
-            GIT_COMMITTER_DATE="$DATE" git commit --date="$DATE" -am "Commit automático #$i - $DATE"
+            GIT_COMMITTER_DATE="$DATE" git commit --date="$DATE" -m "Commit automático #$i - $DATE"
           done
 
-          # Push autenticado
-          git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git HEAD:main
+          # Push autenticado al branch principal
+          git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git main
