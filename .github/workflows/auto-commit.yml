@@ -1,4 +1,4 @@
-name: Commit Automático Avanzado
+name: Commit Automático Avanzado Pro
 
 permissions:
   contents: write  # Permitir commits y push
@@ -7,9 +7,9 @@ on:
   schedule:
     # Lunes, Miércoles, Jueves
     - cron: '0 8 * * 1,3,4'
-    # Martes (todas las semanas, validamos si es par)
+    # Martes (semana par)
     - cron: '0 8 * * 2'
-    # Viernes (todas las semanas, validamos si es múltiplo de 3)
+    # Viernes (semana múltiplo de 3)
     - cron: '0 8 * * 5'
   workflow_dispatch:
 
@@ -27,25 +27,22 @@ jobs:
         id: plan
         run: |
           DAY_NUM=$(date +%u)  # 1=Lunes, ..., 7=Domingo
-          WEEK_NUM=$(date +%U)  # Semana del año (00-53)
+          WEEK_NUM=$(date +%U)
 
           declare -a DAYS=(null monday tuesday wednesday thursday friday saturday sunday)
           DAY_NAME=${DAYS[$DAY_NUM]}
 
           COMMITS=0
 
-          # Lunes, miércoles, jueves → 3 commits
           if [ "$DAY_NUM" = "1" ] || [ "$DAY_NUM" = "3" ] || [ "$DAY_NUM" = "4" ]; then
-            COMMITS=3
-          # Martes → solo si la semana es par
+            COMMITS=5  # Más commits para más verde
           elif [ "$DAY_NUM" = "2" ]; then
             if [ $((WEEK_NUM % 2)) -eq 0 ]; then
-              COMMITS=1
+              COMMITS=2
             fi
-          # Viernes → solo si la semana es múltiplo de 3
           elif [ "$DAY_NUM" = "5" ]; then
             if [ $((WEEK_NUM % 3)) -eq 0 ]; then
-              COMMITS=1
+              COMMITS=2
             fi
           fi
 
@@ -53,24 +50,25 @@ jobs:
           echo "commits=$COMMITS" >> $GITHUB_OUTPUT
           echo "day_name=$DAY_NAME" >> $GITHUB_OUTPUT
 
-      - name: Hacer commits automáticos
+      - name: Hacer commits avanzados
         if: ${{ steps.plan.outputs.commits != '0' && steps.plan.outputs.commits != '' }}
         run: |
-          FILE="activity-${{ steps.plan.outputs.day_name }}.txt"
-
-          # Configurar tu identidad (importante para que cuente como tuyo)
+          # Configurar identidad
           git config user.name "JaironMark"
           git config user.email "123576109+JaironMark@users.noreply.github.com"
 
-          # Crear commits según la lógica
           for i in $(seq 1 ${{ steps.plan.outputs.commits }}); do
-            HOUR=$((RANDOM % 10 + 8))
+            # Simular hora aleatoria entre 8:00 y 20:00
+            HOUR=$((RANDOM % 13 + 8))
             MINUTE=$((RANDOM % 60))
             DATE="$(date "+%Y-%m-%d") $HOUR:$(printf "%02d" $MINUTE)"
 
-            echo "Commit $i a las $DATE - $RANDOM" >> "$FILE"
-            git add "$FILE"
-            git commit -m "Commit automático #$i - $DATE"
+            # Archivo distinto por commit
+            FILE="activity-${{ steps.plan.outputs.day_name }}-$i.txt"
+            echo "Commit #$i a las $DATE - $RANDOM" >> "$FILE"
+
+            # Commit con fecha simulada
+            GIT_COMMITTER_DATE="$DATE" git commit --date="$DATE" -am "Commit automático #$i - $DATE"
           done
 
           # Push autenticado
