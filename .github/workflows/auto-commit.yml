@@ -1,7 +1,7 @@
 name: Commit Automático Avanzado
 
 permissions:
-  contents: write  # Permite hacer git push
+  contents: write  # Permitir commits y push
 
 on:
   schedule:
@@ -19,9 +19,11 @@ jobs:
 
     steps:
       - name: Clonar el repositorio
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Obtener lógica de commits
+      - name: Calcular commits del día
         id: plan
         run: |
           DAY_NUM=$(date +%u)  # 1=Lunes, ..., 7=Domingo
@@ -32,12 +34,15 @@ jobs:
 
           COMMITS=0
 
+          # Lunes, miércoles, jueves → 3 commits
           if [ "$DAY_NUM" = "1" ] || [ "$DAY_NUM" = "3" ] || [ "$DAY_NUM" = "4" ]; then
             COMMITS=3
+          # Martes → solo si la semana es par
           elif [ "$DAY_NUM" = "2" ]; then
             if [ $((WEEK_NUM % 2)) -eq 0 ]; then
               COMMITS=1
             fi
+          # Viernes → solo si la semana es múltiplo de 3
           elif [ "$DAY_NUM" = "5" ]; then
             if [ $((WEEK_NUM % 3)) -eq 0 ]; then
               COMMITS=1
@@ -48,22 +53,25 @@ jobs:
           echo "commits=$COMMITS" >> $GITHUB_OUTPUT
           echo "day_name=$DAY_NAME" >> $GITHUB_OUTPUT
 
-      - name: Hacer commits
-        if: steps.plan.outputs.commits != '0'
+      - name: Hacer commits automáticos
+        if: ${{ steps.plan.outputs.commits != '0' && steps.plan.outputs.commits != '' }}
         run: |
           FILE="activity-${{ steps.plan.outputs.day_name }}.txt"
 
+          # Configurar tu identidad (importante para que cuente como tuyo)
+          git config user.name "JaironMark"
+          git config user.email "123576109+JaironMark@users.noreply.github.com"
+
+          # Crear commits según la lógica
           for i in $(seq 1 ${{ steps.plan.outputs.commits }}); do
-            # Simular una hora aleatoria entre 8:00 y 18:00
             HOUR=$((RANDOM % 10 + 8))
             MINUTE=$((RANDOM % 60))
             DATE="$(date "+%Y-%m-%d") $HOUR:$(printf "%02d" $MINUTE)"
 
             echo "Commit $i a las $DATE - $RANDOM" >> "$FILE"
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
             git add "$FILE"
             git commit -m "Commit automático #$i - $DATE"
           done
 
-          git push origin HEAD
+          # Push autenticado
+          git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git HEAD:main
